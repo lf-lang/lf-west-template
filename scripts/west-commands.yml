@@ -1,0 +1,6 @@
+west-commands:
+  - file: scripts/lf_build.py
+    commands:
+      - name: lf-build
+        class: LfBuild
+        help: Invoke lfc and then west build
