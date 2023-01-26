@@ -1,0 +1,8 @@
+# Copyright (c) 2023: <erling.r.jellum@ntnu.no> 
+
+# Top manifest file is in `application` director
+[manifest]
+path = .
+# Zephyr project is located in `deps/zephyr`
+[zephyr]
+base = deps/zephyr
