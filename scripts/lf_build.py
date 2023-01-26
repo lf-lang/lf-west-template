@@ -33,9 +33,12 @@ class LfBuild(WestCommand):
         return parser           # gets stored as self.parser
 
     def do_run(self, args, unknown_args):
-        # FIXME: The problem is that we dont control where the output of lfc is
-        # routed. This is a hack and it doesnt work if the LF program is e.g. at app/src/more_dirs/HelloWorld.lf.
+        
+        if "src" not in args.main_lf.split("/"):
+            print("ERROR: West lf-build must be invoked outside `src` folder")
+
         srcGenPath = args.main_lf.split(".")[0].replace("src", "src-gen")
+        appPath = args.main_lf.split("src")[0]
 
         # 1. Invoke lfc with clean flag `-c` and without invoking target
         #    compiler `n`.
@@ -49,26 +52,27 @@ class LfBuild(WestCommand):
         if ret != 0:
             exit(1)
 
-        # FIXME: This is a not-intuitive limitation from the users prespective.
-        # But we use `-DOVERLAY_CONFIG` to mix in the prj.conf from the app
-        # directory with the prj_lf.conf in the `src-gen`
         if not args.west_commands:
             args.west_commands = ""
         
+        # FIXME: This is a not-intuitive limitation from the users prespective.
+        # But we use `-DOVERLAY_CONFIG` to mix in the prj.conf from the app
+        # directory with the prj_lf.conf in the `src-gen`
         if "-DOVERLAY_CONFIG" in args.west_commands:
             print("Error: Use `--conf-overlays` option to pass config overlays to west")
 
-        # Add config overlays
-        userConfigPaths="../../prj.conf"
+        # Copy project configurations into src-gen 
+        userConfigPaths="prj.conf"
+        res = subprocess.Popen(f"cp {appPath}/prj.conf {srcGenPath}/", shell=True)
         if args.conf_overlays:
-            userConfigPaths += f";../../{args.conf_overlays}"
+            res = subprocess.Popen(f"cp {appPath}/{args.conf_overlays} {srcGenPath}/", shell=True)
+            userConfigPaths += f";{args.conf_overlays}"
 
         # Copy the Kconfig file into the src-gen directory
-        res = subprocess.Popen(f"cp Kconfig {srcGenPath}/", shell=True)
+        res = subprocess.Popen(f"cp {appPath}/Kconfig {srcGenPath}/", shell=True)
         ret = res.wait()
         if ret != 0:
             exit(1)
-
 
         # Invoke west in the `src-gen` directory. Pass in 
         westCmd = f"west build {srcGenPath} {args.west_commands} -- -DOVERLAY_CONFIG=\"{userConfigPaths}\""
