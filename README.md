@@ -38,4 +38,4 @@ west flash
 
 The custom `lf-build` west command can be inspected in `scripts/lf_build.py`. It
 invokes `lfc` on the provided LF source file. It then invokes `west build` on
-the generated sources. `west lf-build -h`
+the generated sources. See `west lf-build -h` for more information.
