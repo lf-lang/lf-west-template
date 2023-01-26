@@ -1,5 +1,3 @@
-# This is still a work-in-progress
-
 # Lingua Franca Zephyr Template
 
 This repository contains a template for Lingua Franca applications using the
