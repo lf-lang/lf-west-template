@@ -16,7 +16,13 @@ invoking `lfc`.
 
 Please refer to [Zephyr Getting Started Guide](https://docs.zephyrproject.org/latest/getting_started/index.html). NB. You can skip steps 5,6,7 which clones the entire Zephyr project. Instead we will clone Zephyr into this workspace using west.
 ### Initialization
-1. Clone the Zephyr project into `deps/zephyr`
+1. Clone this template and remove old git history
+```
+git clone https://github.com/lf-lang/lf-zephyr-template/ lf-zephyr-app
+cd lf-zephyr-app
+```
+
+2. Clone the Zephyr project into `deps/zephyr`
 ```
 west update
 ```
