@@ -39,6 +39,8 @@ class LfBuild(WestCommand):
 
         srcGenPath = args.main_lf.split(".")[0].replace("src", "src-gen")
         appPath = args.main_lf.split("src")[0]
+        if appPath == "":
+            appPath = "."
 
         # 1. Invoke lfc with clean flag `-c` and without invoking target
         #    compiler `n`.
