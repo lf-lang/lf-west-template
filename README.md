@@ -1,4 +1,4 @@
-# Lingua Franca Zephyr Template
+# Lingua Franca West Template
 
 This repository contains a template for Lingua Franca applications using the
 Zephyr target platform. It contains a `west` extensions which takes care of
