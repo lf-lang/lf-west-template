@@ -46,7 +46,7 @@ west lf-build src/HelloWorld.lf -w "-t run"
 #### Nrf52 blinky
 ```
 cd application
-west lf-build src/NrfBlinky.lf -w "-b nrf52dk_nrf52832"
+west lf-build src/NrfBlinky.lf -w "-b nrf52dk_nrf52832 -p always"
 west flash
 ```
 
