@@ -44,6 +44,9 @@ west lf-build src/HelloWorld.lf -w "-t run"
 ```
 
 #### Nrf52 blinky
+
+This requires that the `nrfjprog` utility is installed. See installation guide [here](https://www.nordicsemi.com/Products/Development-tools/nrf-command-line-tools/download)
+
 ```
 cd application
 west lf-build src/NrfBlinky.lf -w "-b nrf52dk_nrf52832 -p always"
