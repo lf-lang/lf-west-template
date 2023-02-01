@@ -17,6 +17,7 @@ invoking `lfc`.
 Please refer to [Zephyr Getting Started Guide](https://docs.zephyrproject.org/latest/getting_started/index.html). NB. You can skip steps 5,6,7 which clones the entire Zephyr project. Instead we will clone Zephyr into this workspace using west.
 
 If `west` is installed in a virtual environment, this environment is assumed activated for the rest of this guide.
+
 ### Initialization
 1. Clone this template and remove old git history
 ```
@@ -27,6 +28,11 @@ cd lf-zephyr-app
 2. Clone the Zephyr project into `deps/zephyr`
 ```
 west update
+```
+
+3. Install Zephyr python dependencies
+```
+pip3 install -r deps/zephyr/scripts/requirements.txt
 ```
 
 ### Build & Run
