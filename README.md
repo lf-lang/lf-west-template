@@ -7,9 +7,13 @@ invoking `lfc`.
 ## Requirements
 - Linux system (or WSL). Should be fine on macos also, but not tested yet.
 - An installation of `lfc` which is more recent than commit `788ba74` where
-  zephyr support was added
+  zephyr support was added. The nightly release can be downloaded [here](https://github.com/lf-lang/lingua-franca/releases). This version of `lfc` must the only `lfc` on the system path. Alternatively you can edit [this](https://github.com/lf-lang/lf-west-template/blob/main/scripts/lf_build.py#L15) line to give the path to the new lfc.
 
-### Zephyr
+NB: This is a temporary workaround until v0.4 is released
+  
+  
+  
+## Zephyr
 - In order to use this template the following Zephyr dependencies are needed:
 1. West meta build tool
 2. Zephyr SDK and toolchains
