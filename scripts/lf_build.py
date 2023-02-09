@@ -75,9 +75,18 @@ class LfBuild(WestCommand):
         ret = res.wait()
         if ret != 0:
             exit(1)
+        
+        # Parse the generated CompileDefinitions.txt which should be 
+        # forwarded to west
+        compileDefs = ""
+        with open(f"{srcGenPath}/CompileDefinitions.txt") as f:
+            for line in f:
+                    line = line.replace("\n", "")
+                    compileDefs += f"-D{line} "
 
+        print(compileDefs)
         # Invoke west in the `src-gen` directory. Pass in 
-        westCmd = f"west build {srcGenPath} {args.west_commands} -- -DOVERLAY_CONFIG=\"{userConfigPaths}\""
+        westCmd = f"west build {srcGenPath} {args.west_commands} -- -DOVERLAY_CONFIG=\"{userConfigPaths}\" {compileDefs}"
         print(f"Executing west command: `{westCmd}`")
         res = subprocess.Popen(westCmd, shell=True)
         ret = res.wait()
