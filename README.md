@@ -23,18 +23,21 @@ Please refer to [Zephyr Getting Started Guide](https://docs.zephyrproject.org/la
 If `west` is installed in a virtual environment, this environment is assumed activated for the rest of this guide.
 
 ### Initialization
-1. Clone this template and remove old git history
+1. Clone this template and remove old git history:
+
 ```
 git clone https://github.com/lf-lang/lf-zephyr-template/ lf-zephyr-app
 cd lf-zephyr-app
 ```
 
-2. Clone the Zephyr project into `deps/zephyr`
+2. Clone the Zephyr project into `deps/zephyr`:
+
 ```
 west update
 ```
 
-3. Install Zephyr python dependencies
+3. Install Zephyr python dependencies:
+
 ```
 pip3 install -r deps/zephyr/scripts/requirements.txt
 ```
