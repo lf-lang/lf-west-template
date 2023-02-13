@@ -1,13 +1,13 @@
 # Lingua Franca West Template
 
 This repository contains a template for Lingua Franca applications using the
-Zephyr target platform. It contains a `west` extensions which takes care of
+Zephyr target platform. It contains a `west` extension which takes care of
 invoking `lfc`.
 
 ## Requirements
-- Linux system (or WSL). Should be fine on macos also, but not tested yet.
+- Linux system (or WSL). Should be fine on MacOS also, but not tested yet.
 - An installation of `lfc` which is more recent than commit `788ba74` where
-  zephyr support was added. The nightly release can be downloaded [here](https://github.com/lf-lang/lingua-franca/releases). This version of `lfc` must the only `lfc` on the system path. Alternatively you can edit [this](https://github.com/lf-lang/lf-west-template/blob/main/scripts/lf_build.py#L15) line to give the path to the new lfc.
+  zephyr support was added. The nightly release can be downloaded [here](https://github.com/lf-lang/lingua-franca/releases). This version of `lfc` must the first `lfc` on the system path. Alternatively you can edit [this](https://github.com/lf-lang/lf-west-template/blob/main/scripts/lf_build.py#L15) line to give the path to the new lfc.
 
 NB: This is a temporary workaround until v0.4 is released
   
@@ -15,7 +15,7 @@ NB: This is a temporary workaround until v0.4 is released
   
 ## Zephyr
 - In order to use this template the following Zephyr dependencies are needed:
-1. West meta build tool
+1. West meta build tool (see [West information](https://docs.zephyrproject.org/latest/develop/west/index.html))
 2. Zephyr SDK and toolchains
 
 Please refer to [Zephyr Getting Started Guide](https://docs.zephyrproject.org/latest/getting_started/index.html). NB. You can skip steps 5,6,7 which clones the entire Zephyr project. Instead we will clone Zephyr into this workspace using west.
