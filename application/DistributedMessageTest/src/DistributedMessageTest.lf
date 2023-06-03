@@ -53,7 +53,6 @@ reactor Drain {
         assert(device_is_ready(led1.port));
         gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE);
         gpio_pin_set_dt(&led1, 1);
-        printf("Starting first iteration at %u.!!!!!!!\n", self->count, lf_time_physical_elapsed());
     =}
 
     reaction(x) {=
