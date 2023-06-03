@@ -1,0 +1,280 @@
+target C {
+    platform: "Zephyr",
+    no-compile: true,
+    coordination: decentralized,
+    workers: 2,
+}
+// 20 40 STP fungerte avogtil, men B og C kunne være sene (after 0) res:12ms. Da var linux 0 og 0 (after 0). 
+// Men det gir nok inherently ikke mening. Det er nok ikke poeng med distAlg STP. Og relay STP gir sirkulærtidsavhengiget 
+reactor DistAlg(ownId:int(0), STP_offset:time(15 msec)) {
+    preamble {=
+        void findIndexSmallestValues(int* arr, int* closestArr, int n) {
+            int min1 = arr[0];
+            int pos1 = 0;
+            int min2 = arr[1];
+            int pos2 = 1;
+
+            if (min2 < min1) {
+                min1 = arr[1];
+                pos1 = 1;
+                min2 = arr[0];
+                pos2 = 0;
+            }
+            for (int i = 2; i < n; i++) {
+                if (arr[i] < min1) {
+                    min2 = min1;
+                    pos2 = pos1;
+                    min1 = arr[i];
+                    pos1 = i;
+                } else if (arr[i] < min2) {
+                    min2 = arr[i];
+                    pos2 = i;
+                }
+            }
+            closestArr[0] = pos1;
+            closestArr[1] = pos2;
+        }
+
+        int localAction(int closestRelays[], int ownId) {
+            if (ownId == closestRelays[0] || ownId == closestRelays[1]) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+
+        int decideLocalAction(int* arr, int ownId, int numUnits) {
+            int closestRelays[2];
+            findIndexSmallestValues(arr, closestRelays, numUnits);
+            return localAction(closestRelays, ownId);
+        }
+    =}
+
+    output distributedDecision:int
+    input voltageReportAIn:int
+    input voltageReportBIn:int
+    input voltageReportCIn:int
+    input voltageReportDIn:int
+    state voltages:int[]// = {0, 0, 0, 0}
+    state numReports:int(0)
+    state result:bool (false)
+    reaction(voltageReportAIn, voltageReportBIn, voltageReportCIn, voltageReportDIn) -> distributedDecision {=
+        if (voltageReportAIn->is_present && voltageReportBIn->is_present && voltageReportCIn->is_present && voltageReportDIn->is_present) {
+            self->voltages[0] = voltageReportAIn->value;
+            self->voltages[1] = voltageReportBIn->value;
+            self->voltages[2] = voltageReportCIn->value;
+            self->voltages[3] = voltageReportDIn->value;
+            self->result = decideLocalAction(self->voltages, self->ownId, 4);
+            //printf("Setting relay %u to %u (1=open,0=close)\n", self->ownId, result);
+            lf_set(distributedDecision, self->result);
+        } else {
+            printf("Not all inputs present.\n");
+        }
+    =} STP(0) {=
+        printf("STP violation: Did not receive inputs in time, opening circuit as default.\n");
+
+        //debugging
+        if (((lf_time_logical_elapsed() - (voltageReportAIn->intended_tag.time - lf_time_start()) > 0) || 
+           ((lf_time_logical_elapsed() - (voltageReportAIn->intended_tag.time - lf_time_start()) == 0) && 
+           ((lf_tag().microstep - voltageReportAIn->intended_tag.microstep) > 0))) &&
+           (voltageReportAIn->is_present)) {
+            printf("Input from A was tardy.\n");
+        }
+
+        if (((lf_time_logical_elapsed() - (voltageReportBIn->intended_tag.time - lf_time_start()) > 0) || 
+           ((lf_time_logical_elapsed() - (voltageReportBIn->intended_tag.time - lf_time_start()) == 0) && 
+           ((lf_tag().microstep - voltageReportBIn->intended_tag.microstep) > 0))) &&
+           (voltageReportBIn->is_present)) {
+            printf("Input from B was tardy.\n");
+        }
+
+        if (((lf_time_logical_elapsed() - (voltageReportCIn->intended_tag.time - lf_time_start()) > 0) || 
+           ((lf_time_logical_elapsed() - (voltageReportCIn->intended_tag.time - lf_time_start()) == 0) && 
+           ((lf_tag().microstep - voltageReportCIn->intended_tag.microstep) > 0))) &&
+           (voltageReportCIn->is_present)) {
+            printf("Input from C was tardy.\n");
+        }
+
+        if (((lf_time_logical_elapsed() - (voltageReportDIn->intended_tag.time - lf_time_start()) > 0) || 
+           ((lf_time_logical_elapsed() - (voltageReportDIn->intended_tag.time - lf_time_start()) == 0) && 
+           ((lf_tag().microstep - voltageReportDIn->intended_tag.microstep) > 0))) &&
+           (voltageReportDIn->is_present)) {
+            printf("Input from D was tardy.\n");
+        }
+    =}
+}
+
+reactor CircuitStatus(STP_offset:time(0 msec)) {
+    preamble {=
+        #include <zephyr/kernel.h>
+        #include <zephyr/drivers/gpio.h>
+        #define LED0_NODE DT_ALIAS(led0)
+        static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+        void openCircuit() {
+            // led turns on
+            gpio_pin_set_dt(&led, 0);
+        }
+
+        void closeCircuit() {
+            // led turns off
+            gpio_pin_set_dt(&led, 1);
+        }
+    =}
+
+    input distributedDecision:int
+    input countdown:int
+    logical action breakCircuit;
+    state faultHandled:int;
+
+    reaction(startup){=
+        assert(device_is_ready(led.port));
+        gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    =}
+
+    reaction(countdown) -> breakCircuit {=
+        self->faultHandled = 0;
+        lf_schedule(breakCircuit, MSEC(150));
+    =} STP(0) {=
+        printf("STP violation for countdown\n");
+    =}
+
+    reaction(breakCircuit) {=
+        if (self->faultHandled){
+            // This relay is not the closest to the fault
+        } else {
+            openCircuit();
+        }
+    =} STP(0) {=
+        printf("STP violation for breakcircuit.\n");
+    =}
+
+    reaction(distributedDecision) -> breakCircuit {=
+        if (distributedDecision->value) {
+            openCircuit();
+            self->faultHandled = 1;
+        } else {
+            closeCircuit();
+            self->faultHandled = 1;
+        }
+    =} STP(0) {=
+        printf("STP violation for distributed decision.\n");
+    =}
+}
+
+reactor VoltageSensor(id:int(0)) {
+
+    preamble{=
+
+        #include <zephyr/kernel.h>
+        #include <zephyr/drivers/gpio.h>
+        static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(DT_PATH(leds,led_2), gpios);
+        const struct device *const gpio_dev = DEVICE_DT_GET(DT_NODELABEL(gpio9));
+
+        #define VOLTAGE_LIMIT 14000U
+
+        // Voltage measurement timeseries
+        int simMeas[4][14] ={{15000,15000,13100,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000},
+                            {15000,15000,11000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000},
+                            {15000,15000,11200,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000},
+                            {15000,15000,12500,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000,15000}};
+
+        int readSensor(int id, int count) {
+            return simMeas[id][count];
+        }
+    =}
+
+    timer t(1 sec, 70 msec);
+    output[4] measOut:int
+    output startCountdown:int
+    state measCount:int(0)
+
+    reaction(startup){=
+        assert(device_is_ready(led2.port));
+        assert(device_is_ready(gpio_dev));
+        gpio_pin_configure_dt(&led2, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_configure(gpio_dev, 5, GPIO_OUTPUT); 
+        gpio_pin_set_dt(&led2, 0);
+        gpio_pin_set(gpio_dev, 5, 1);
+    =}
+
+    reaction(t) -> measOut, startCountdown {=
+
+        // Read simulated measurement 
+        int voltageMeasurement = readSensor(self->id, self->measCount);
+        if (self->measCount == 13) {
+            self->measCount = 0;
+            lf_request_stop();
+        } else {
+            self->measCount++;
+        }
+
+        // Check if short circuit has occured on the line
+        if (voltageMeasurement < VOLTAGE_LIMIT) {
+            //printk("curr logical time at send a: %lld, %d\n", lf_time_logical() - lf_time_start(), lf_tag().microstep);
+            //printk("curr logical time at send b: %lld, %d\n", lf_tag().time, lf_tag().microstep);
+            gpio_pin_set_dt(&led2, 1);
+            gpio_pin_set(gpio_dev, 5, 0);
+            // A fault has occured, let other nodes know
+            lf_set(startCountdown, 1);
+            for (int i = 0; i < 4; i++) {
+                lf_set(measOut[i], voltageMeasurement);
+            }
+        }
+    =}
+}
+
+reactor RelayUnit(id:int(0), STP_offset:time(5 msec)) {
+    output[4] voltageReportOut:int;
+    input voltageReportAIn:int;
+    input voltageReportBIn:int;
+    input voltageReportCIn:int;
+    input voltageReportDIn:int;
+
+    circuitStatus = new CircuitStatus();
+    voltageSensor = new VoltageSensor(id = id);
+    distAlg = new DistAlg(ownId = id);
+
+    voltageSensor.measOut -> voltageReportOut;
+    voltageSensor.startCountdown -> circuitStatus.countdown;
+
+    voltageReportAIn -> distAlg.voltageReportAIn;
+    voltageReportBIn -> distAlg.voltageReportBIn;
+    voltageReportCIn -> distAlg.voltageReportCIn;
+    voltageReportDIn -> distAlg.voltageReportDIn;
+    
+    distAlg.distributedDecision -> circuitStatus.distributedDecision;
+
+}
+
+federated reactor at 192.0.2.2:15047 {
+    unitA = new RelayUnit(id = 0);
+    unitB = new RelayUnit(id = 1);
+    unitC = new RelayUnit(id = 2);
+    unitD = new RelayUnit(id = 3);
+
+    unitA.voltageReportOut -> unitA.voltageReportAIn, 
+                              unitB.voltageReportAIn, 
+                              unitC.voltageReportAIn, 
+                              unitD.voltageReportAIn after 15 msec;
+
+    unitB.voltageReportOut -> unitA.voltageReportBIn, 
+                              unitB.voltageReportBIn, 
+                              unitC.voltageReportBIn, 
+                              unitD.voltageReportBIn after 15 msec;
+
+    unitC.voltageReportOut -> unitA.voltageReportCIn, 
+                              unitB.voltageReportCIn, 
+                              unitC.voltageReportCIn, 
+                              unitD.voltageReportCIn after 15 msec;
+
+    unitD.voltageReportOut -> unitA.voltageReportDIn, 
+                              unitB.voltageReportDIn, 
+                              unitC.voltageReportDIn, 
+                              unitD.voltageReportDIn after 15 msec;
+
+    // reaction(startup){=
+    //     interval_t stp = 30000000LL;
+    //     lf_set_stp_offset(stp);
+    // =}
+}

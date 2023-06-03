@@ -1,7 +1,11 @@
-application/src-gen
-application/bin
-application/build
+application/*/src-gen
+application/*/fed-gen
+application/*/bin
+application/*/build
+application/*/include
+application/*/*build/**
 
+.vscode
 scripts/__pycache__
 build/
 

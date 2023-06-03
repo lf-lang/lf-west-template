@@ -1,0 +1,78 @@
+target C {
+     platform: {
+        name: "Zephyr",
+     },
+     threading: true,
+     workers: 2,
+     no-compile: true,
+     coordination: decentralized,
+}
+
+reactor Source(period: time(2 sec), iterations:int(10)) {
+    preamble{=
+        #include <zephyr/kernel.h>
+        #include <zephyr/drivers/gpio.h>
+
+        static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+    =}
+    output y: int
+    timer t(1 sec, period)
+    state count: int(0)
+
+    reaction(startup) {=
+        assert(device_is_ready(led1.port));
+        gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&led1, 1);
+    =}
+
+    reaction(t) -> y {=
+        (self->count)++;
+        gpio_pin_toggle_dt(&led1);
+        lf_set(y, self->count);
+        if (self->count == self->iterations) {
+            lf_request_stop();
+        }
+    =}
+
+    reaction(shutdown) {=
+        printf("Finished %u iterations. Requesting stop.\n", self->count);
+    =}
+}
+
+reactor Drain {
+    preamble{=
+        #include <zephyr/kernel.h>
+        #include <zephyr/drivers/gpio.h>
+
+        static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+    =}
+    input x: int
+    state count: int(0)
+
+    reaction(startup) {=
+        assert(device_is_ready(led1.port));
+        gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&led1, 1);
+        printf("Starting first iteration at %u.!!!!!!!\n", self->count, lf_time_physical_elapsed());
+    =}
+
+    reaction(x) {=
+        (self->count)++;
+        if (self->count != x->value) {
+            printf("Received wrong message: %u. Expected: %u. Requesting stop.\n", x->value, self->count);
+            lf_request_stop();
+        } else {
+            gpio_pin_toggle_dt(&led1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        printf("Finished %u iterations in %u. Stopping.\n", self->count, lf_time_physical_elapsed());
+    =}
+}
+
+federated reactor DistributedMessageTest at 192.0.2.3:15047 {
+    s = new Source(period = 100 msec, iterations = 300);
+    d = new Drain();
+    s.y -> d.x;
+}
