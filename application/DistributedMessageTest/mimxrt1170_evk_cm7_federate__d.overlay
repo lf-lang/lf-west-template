@@ -1,0 +1,14 @@
+
+&{/leds} {
+	compatible = "gpio-leds";
+	led-2 {
+		gpios = < &gpio9 0x19 GPIO_ACTIVE_HIGH >;
+		label = "User LED D34, GPIO9 AD 26";
+		status = "okay";
+	};
+};
+
+&enet {
+	local-mac-address = [00 0a 35 00 00 01];
+	status = "okay";
+};

@@ -1,0 +1,20 @@
+/**
+* This overlay file (name: <BOARD>_<FEDERATE_NAME>.overlay) will override 
+* default hardware configurations in <BOARD>.dts. The overlay file must 
+* specify a unique MAC address when there are more than one board federate 
+* to be depolyed.
+*/ 
+
+&{/leds} {
+	compatible = "gpio-leds";
+	led-2 {
+		gpios = < &gpio9 0x19 GPIO_ACTIVE_HIGH >;
+		label = "User LED D34, GPIO9 AD 26";
+		status = "okay";
+	};
+};
+
+&enet {
+	local-mac-address = [00 0a 35 00 00 02];
+	status = "okay";
+};

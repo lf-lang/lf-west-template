@@ -1,0 +1,41 @@
+// This test connects a simple counting source to tester that checks against its
+// own count.
+target C {
+    platform: "Zephyr",
+    threading: true,
+    workers: 2,
+    no-compile: true,
+}
+
+preamble {=
+    #include <zephyr/kernel.h>
+    #include <zephyr/drivers/gpio.h>
+    #define LED0_NODE DT_ALIAS(led0)
+    static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+=}
+
+reactor Source(period: time(1 sec)) {
+    timer t(1 sec, period)
+    state count:int(0)
+    reaction(t) {=
+        gpio_pin_toggle_dt(&led);
+        self->count++;
+        if (self->count == 120) {
+            lf_request_stop();
+        }
+    =}
+    reaction(shutdown) {=
+        printf("Final count was: %d", self->count);
+    =}
+}
+
+federated reactor ClockSyncTest at 192.0.2.2:15047{
+    s = new Source(period = 500 msec);
+    d = new Source(period = 500 msec);
+
+    reaction(startup) {=
+        assert(device_is_ready(led.port));
+        gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&led, 1);
+    =}
+}
