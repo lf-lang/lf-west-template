@@ -1,6 +1,7 @@
 from west.commands import WestCommand  # your extension must subclass this
 from west import log                   # use this for user output
 
+import os
 import subprocess
 
 class LfBuild(WestCommand):
@@ -27,7 +28,8 @@ class LfBuild(WestCommand):
         # parser.add_argument('project_root', help='Path to root of project')
         parser.add_argument('main_lf', help='Name of main LF file')
         parser.add_argument('-w', '--west-commands', help='Arguments to forward to west')
-        parser.add_argument('-c', '--conf-overlays', help='Additional configuration overlays')
+        parser.add_argument('-c', '--conf-overlay', help='Additional configuration')
+        parser.add_argument('-d', '--dtc-overlay', help='Additional overlays')
         parser.add_argument('--lfc', help='Path to LFC binary')
 
         return parser           # gets stored as self.parser
@@ -43,7 +45,7 @@ class LfBuild(WestCommand):
             appPath = "."
 
         # 1. Invoke lfc with clean flag `-c` and without invoking target
-        #    compiler `n`.
+        #    compiler `-n`.
         if args.lfc:
             self.lfcPath = args.lfc
         
@@ -63,12 +65,25 @@ class LfBuild(WestCommand):
         if "-DOVERLAY_CONFIG" in args.west_commands:
             print("Error: Use `--conf-overlays` option to pass config overlays to west")
 
-        # Copy project configurations into src-gen 
-        userConfigPaths="prj.conf"
+        # Copy user configuration overlays into src-gen 
+        userConfigPaths="-DOVERLAY_CONFIG=\"prj.conf"
         res = subprocess.Popen(f"cp {appPath}/prj.conf {srcGenPath}/", shell=True)
-        if args.conf_overlays:
-            res = subprocess.Popen(f"cp {appPath}/{args.conf_overlays} {srcGenPath}/", shell=True)
-            userConfigPaths += f";{args.conf_overlays}"
+        if args.conf_overlay:
+            conf_name = os.path.basename(args.conf_overlay)
+            res = subprocess.call(["cp",  f"{appPath}/{args.confs}" , f"{srcGenPath}/{conf_name}"])
+            if not res == 0:
+                exit(1)
+            userConfigPaths += f";{conf_name}"
+        userConfigPaths += "\""
+
+        # Copy user device tree config overlays into src-gen 
+        userDtcOverlayPaths=""
+        if args.dtc_overlay:
+            dtc_name = os.path.basename(args.dtc_overlay)
+            res = subprocess.call(["cp",  f"{appPath}/{args.dtc_overlay}" , f"{srcGenPath}/{dtc_name}"])
+            if not res == 0:
+                exit(1)
+            userDtcOverlayPaths = f"-DDTC_OVERLAY_FILE=\"{dtc_name}\""
 
         # Copy the Kconfig file into the src-gen directory
         res = subprocess.Popen(f"cp {appPath}/Kconfig {srcGenPath}/", shell=True)
@@ -84,9 +99,8 @@ class LfBuild(WestCommand):
                     line = line.replace("\n", "")
                     compileDefs += f"-D{line} "
 
-        print(compileDefs)
         # Invoke west in the `src-gen` directory. Pass in 
-        westCmd = f"west build {srcGenPath} {args.west_commands} -- -DOVERLAY_CONFIG=\"{userConfigPaths}\" {compileDefs}"
+        westCmd = f"west build {srcGenPath} {args.west_commands} -- {userConfigPaths} {userDtcOverlayPaths} {compileDefs}"
         print(f"Executing west command: `{westCmd}`")
         res = subprocess.Popen(westCmd, shell=True)
         ret = res.wait()
