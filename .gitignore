@@ -10,6 +10,8 @@ deps/
 
 .venv/
 **/build
+**/src-gen/
+**/include/
 
 
 zephyr-tests/
