@@ -1,0 +1,45 @@
+target C {
+    platform: {
+        name: "Zephyr",
+        board: nrf52dk_nrf52832,
+    },
+    threading: false,
+    cmake-include: "timer.cmake"
+}
+
+preamble {=
+    #include <zephyr/kernel.h>
+    #include <zephyr/drivers/gpio.h>
+    #define PIN 11 // See pin assignments here: https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.nrf52832.ps.v1.1%2Fpin.html&anchor=pin_assign
+
+    #define LED0_NODE DT_ALIAS(led0)
+    static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+    static const struct device *const gpio_dev = DEVICE_DT_GET(DT_NODELABEL(gpio0));
+
+    // The following is needed to enable high-precision (and power-hungry) timing
+    #include <zephyr/drivers/clock_control.h>
+    #include <zephyr/drivers/clock_control/nrf_clock_control.h>
+    static const struct device *const clock0 = DEVICE_DT_GET_ONE(nordic_nrf_clock);
+=}
+
+main reactor {
+    timer t (0, 10 msec)
+    
+    reaction(startup) {=
+    
+        // Turn on the HFCLK 
+		int rc = clock_control_on(clock0, CLOCK_CONTROL_NRF_SUBSYS_HF);
+        gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&led, 0);
+        if (!device_is_ready(gpio_dev)) {
+            gpio_pin_set_dt(&led, 1);
+        }
+        
+        gpio_pin_configure(gpio_dev, PIN, GPIO_OUTPUT);
+    =}
+    
+    reaction(t) {=
+        gpio_pin_toggle(gpio_dev, PIN);
+        gpio_pin_toggle_dt(&led);
+    =}
+}

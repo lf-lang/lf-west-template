@@ -1,6 +1,6 @@
 west-commands:
-  - file: scripts/lf_build.py
+  - file: scripts/lfc.py
     commands:
-      - name: lf-build
-        class: LfBuild
-        help: Invoke lfc and then west build
+      - name: lfc
+        class: Lfc
+        help: This command is a wrapper around the Lingua Franca Compiler
