@@ -22,7 +22,7 @@ class Lfc(WestCommand):
                                          description=self.description)
 
         parser.add_argument('app', help='Name of main LF file')
-        parser.add_argument('-b', '--build', help='Invoke `west build` after code-generation', action='store_true')
+        parser.add_argument('--build', nargs='?', const=" ", help='Invoke `west build` after code-generation')
         parser.add_argument('--lfc', help='Path to LFC binary')
 
         return parser           # gets stored as self.parser
@@ -60,8 +60,10 @@ class Lfc(WestCommand):
             exit(1)
         
         # Invoke west in the `src-gen` directory. Pass in 
+
         if args.build:
-          westCmd = f"west build {srcGenPath} -p always"
+          print(args.build)
+          westCmd = f"west build {srcGenPath} {args.build}"
           print(f"Executing west command: `{westCmd}`")
           res = subprocess.Popen(westCmd, shell=True)
           ret = res.wait()
