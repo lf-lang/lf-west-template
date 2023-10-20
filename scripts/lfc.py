@@ -31,30 +31,18 @@ class Lfc(WestCommand):
     def do_run(self, args, unknown_args):
         
         # Verify that the project is laid out correctly
-        if "src" not in args.app.split("/"):
-            print("ERROR: West lfc must be invoked outside `src` folder")
+        if "src" not in args.app:
+            print("ERROR: LF app must be inside a `src` folder")
 
-        # Your input file path
-        # file_path = "/path/to/old_directory/filename.txt"
+        if not os.path.exists("src") or not os.path.exists("Kconfig") or not os.path.exists("prj.conf") or not os.path.exists("app.overlay"):
+            print("ERROR: `west lfc` must be called from the root of the application, where it finds `src`, `Kconfig`, `prj.conf` and `app.overlay` in the same directory ")
 
-        # Remove the file extension
-        # file_name, file_extension = os.path.splitext(file_path)
-        # file_name = os.path.basename(file_name)
 
-        # Replace the directory name
-        # new_directory_name = "new_directory"
-        # file_path = file_path.replace("old_directory", new_directory_name)
-
-        # Combine the modified path with the new directory name
-        # new_path = os.path.join(os.path.dirname(file_path), file_name + file_extension)
-
-        # print(new_path)
-
-        # Find the path where lfc will put the generated sources
-        srcGenPath = args.app.split(".")[0].replace("src", "src-gen")
-        appPath = args.app.split("src")[0]
-        if appPath == "":
-            appPath = "."
+        # Find the path to where lfc will put the sources
+        appPath, app_ext = os.path.splitext(args.app)
+        appName = os.path.basename(appPath)
+        srcGenPath = appPath.replace("src", "src-gen")
+        rootPath = appPath.split("src")[0]
 
         if args.lfc:
             self.lfcPath = args.lfc
@@ -67,9 +55,14 @@ class Lfc(WestCommand):
         if ret != 0:
             exit(1)
         
-        # 2. Copy prj.conf and Kconfig into the src-gen folder
-        shutil.copyfile(f"{appPath}/Kconfig", f"{srcGenPath}/Kconfig")
-        shutil.copyfile(f"{appPath}/prj.conf", f"{srcGenPath}/prj.conf")
+        # 2. Copy prj.conf, Kconfig and app.overlay into the src-gen folder
+        for f in ("Kconfig", "prj.conf", "app.overlay"):
+            src = os.path.join(rootPath, f)
+            dst = os.path.join(srcGenPath, f)
+            if not os.path.exists(src):
+                print(f"Did not find {f} at {src}")
+                exit(1)
+            shutil.copyfile(src, dst)
         
         # Invoke west in the `src-gen` directory. Pass in 
         if args.build:
