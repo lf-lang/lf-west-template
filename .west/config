@@ -1,6 +1,6 @@
 # Path to the main manifest file
 [manifest]
-path = manifest-repo
+path = .
 # Zephyr project is located in `deps/zephyr`
 [zephyr]
 base = deps/zephyr
