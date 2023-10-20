@@ -1,6 +1,4 @@
-# Copyright (c) 2023: <erling.r.jellum@ntnu.no> 
-
-# Top manifest file is in `application` director
+# Path to the main manifest file
 [manifest]
 path = .
 # Zephyr project is located in `deps/zephyr`

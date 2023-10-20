@@ -3,6 +3,7 @@ from west.commands import WestCommand  # your extension must subclass this
 from west import log                   # use this for user output
 
 import os
+import shutil
 import subprocess
 
 class Lfc(WestCommand):
@@ -29,13 +30,19 @@ class Lfc(WestCommand):
 
     def do_run(self, args, unknown_args):
         
-        if "src" not in args.app.split("/"):
-            print("ERROR: West lf-build must be invoked outside `src` folder")
+        # Verify that the project is laid out correctly
+        if "src" not in args.app:
+            print("ERROR: LF app must be inside a `src` folder")
 
-        srcGenPath = args.app.split(".")[0].replace("src", "src-gen")
-        appPath = args.app.split("src")[0]
-        if appPath == "":
-            appPath = "."
+        if not os.path.exists("src") or not os.path.exists("Kconfig") or not os.path.exists("prj.conf") or not os.path.exists("app.overlay"):
+            print("ERROR: `west lfc` must be called from the root of the application, where it finds `src`, `Kconfig`, `prj.conf` and `app.overlay` in the same directory ")
+
+
+        # Find the path to where lfc will put the sources
+        appPath, app_ext = os.path.splitext(args.app)
+        appName = os.path.basename(appPath)
+        srcGenPath = appPath.replace("src", "src-gen")
+        rootPath = appPath.split("src")[0]
 
         if args.lfc:
             self.lfcPath = args.lfc
@@ -48,21 +55,17 @@ class Lfc(WestCommand):
         if ret != 0:
             exit(1)
         
-        # 2. Copy prj.conf and Kconfig into the src-gen folder
-        res = subprocess.Popen(f"cp {appPath}/Kconfig {srcGenPath}/", shell=True)
-        ret = res.wait()
-        if ret != 0:
-            exit(1)
-
-        res = subprocess.Popen(f"cp {appPath}/prj.conf {srcGenPath}/", shell=True)
-        ret = res.wait()
-        if ret != 0:
-            exit(1)
+        # 2. Copy prj.conf, Kconfig and app.overlay into the src-gen folder
+        for f in ("Kconfig", "prj.conf", "app.overlay"):
+            src = os.path.join(rootPath, f)
+            dst = os.path.join(srcGenPath, f)
+            if not os.path.exists(src):
+                print(f"Did not find {f} at {src}")
+                exit(1)
+            shutil.copyfile(src, dst)
         
         # Invoke west in the `src-gen` directory. Pass in 
-
         if args.build:
-          print(args.build)
           westCmd = f"west build {srcGenPath} {args.build}"
           print(f"Executing west command: `{westCmd}`")
           res = subprocess.Popen(westCmd, shell=True)
