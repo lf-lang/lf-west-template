@@ -1,15 +1,21 @@
+/*
+* This program shows how we can toggle a GPIO pin on the nrf52DK and also
+* how we enable the high-precision HFCLK crystal oscillator for better
+* timing precision.
+*/
 target C {
     platform: {
         name: "Zephyr",
         board: nrf52dk_nrf52832,
     },
     threading: false,
-    cmake-include: "timer.cmake"
 }
 
 preamble {=
     #include <zephyr/kernel.h>
     #include <zephyr/drivers/gpio.h>
+    #include <assert.h>
+
     #define PIN 11 // See pin assignments here: https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.nrf52832.ps.v1.1%2Fpin.html&anchor=pin_assign
 
     #define LED0_NODE DT_ALIAS(led0)

@@ -34,9 +34,6 @@ class Lfc(WestCommand):
         if "src" not in args.app:
             print("ERROR: LF app must be inside a `src` folder")
 
-        if not os.path.exists("src") or not os.path.exists("Kconfig") or not os.path.exists("prj.conf") or not os.path.exists("app.overlay"):
-            print("ERROR: `west lfc` must be called from the root of the application, where it finds `src`, `Kconfig`, `prj.conf` and `app.overlay` in the same directory ")
-
 
         # Find the path to where lfc will put the sources
         appPath, app_ext = os.path.splitext(args.app)
@@ -60,7 +57,7 @@ class Lfc(WestCommand):
             src = os.path.join(rootPath, f)
             dst = os.path.join(srcGenPath, f)
             if not os.path.exists(src):
-                print(f"Did not find {f} at {src}")
+                print(f"Did not find {f} at {src}. Project layout is incorrect")
                 exit(1)
             shutil.copyfile(src, dst)
         
