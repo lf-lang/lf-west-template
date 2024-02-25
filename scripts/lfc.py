@@ -24,15 +24,21 @@ class Lfc(WestCommand):
 
         parser.add_argument('app', help='Name of main LF file')
         parser.add_argument('--build', nargs='?', const=" ", help='Invoke `west build` after code-generation')
+        parser.add_argument('--board', help='Board selection, which is passed to `west build` if invoked')
         parser.add_argument('--lfc', help='Path to LFC binary')
 
         return parser           # gets stored as self.parser
 
     def do_run(self, args, unknown_args):
         
+        if args.build and not args.board:
+            print("ERROR: build option selected but no board was passed")
+            exit(1)
+        
         # Verify that the project is laid out correctly
         if "src" not in args.app:
             print("ERROR: LF app must be inside a `src` folder")
+            exit(1)
 
 
         # Find the path to where lfc will put the sources
@@ -61,9 +67,16 @@ class Lfc(WestCommand):
                 exit(1)
             shutil.copyfile(src, dst)
         
+        # 3. Add board/<board>.overlay and app.overlay to the DTC_OVERLAY_FILE
+        # variable, so west picks them both up
+        #
+        # Note: The ordering here matters 
+        # (see https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/build/dts/howtos.html#set-devicetree-overlays)
+        cmake_args = f"-DDTC_OVERLAY_FILE=\"app.overlay boards/{args.board}.overlay\""
+        
         # Invoke west in the `src-gen` directory. Pass in 
         if args.build:
-          westCmd = f"west build {srcGenPath} {args.build}"
+          westCmd = f"west build {srcGenPath} {args.build} -b {args.board} -- {cmake_args}"
           print(f"Executing west command: `{westCmd}`")
           res = subprocess.Popen(westCmd, shell=True)
           ret = res.wait()
