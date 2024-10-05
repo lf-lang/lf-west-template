@@ -15,57 +15,59 @@ class Lfc(WestCommand):
         )
         # To use a specific lfc binary the following variable can be modified
         # or the path to the desired binary can be passed to `--lfc`
-        self.lfcPath = "lfc"
+        self.lfcPath = "/home/erling/dev/reactor-uc/lfc/bin/lfc-dev"
+        self.lfSrcPath = "src"
 
     def do_add_parser(self, parser_adder):
         parser = parser_adder.add_parser(self.name,
                                          help=self.help,
                                          description=self.description)
 
-        parser.add_argument('app', help='Name of main LF file')
-        parser.add_argument('--build', nargs='?', const=" ", help='Invoke `west build` after code-generation')
         parser.add_argument('--lfc', help='Path to LFC binary')
+        parser.add_argument('-b', '--build', help='Invoke west build after', action='store_true')
 
         return parser           # gets stored as self.parser
 
-    def do_run(self, args, unknown_args):
-        
-        # Verify that the project is laid out correctly
-        if "src" not in args.app:
-            print("ERROR: LF app must be inside a `src` folder")
-
-
-        # Find the path to where lfc will put the sources
-        appPath, app_ext = os.path.splitext(args.app)
-        appName = os.path.basename(appPath)
-        srcGenPath = appPath.replace("src", "src-gen")
-        rootPath = appPath.split("src")[0]
-
-        if args.lfc:
-            self.lfcPath = args.lfc
-        
-        # 1. Invoke lfc
-        lfcCmd = f"{self.lfcPath} -c -n {args.app}"
-        print(f"Executing lfc command: `{lfcCmd}`")
-        res = subprocess.Popen(lfcCmd, shell=True)
+    def run_cmd(self, cmd):
+        print(f"Executing command: `{cmd}`")
+        res = subprocess.Popen(cmd, shell=True)
         ret = res.wait()
         if ret != 0:
             exit(1)
+
+
+    def run_lfc(self, file_path):
+        lfcCmd = f"{self.lfcPath} -n {file_path}"
+        self.run_cmd(lfcCmd)
+
+
+    def run_west_build(self):
+        westCmd = "west build -p always"
+        self.run_cmd(westCmd)
+
+
+    def do_run(self, args, unknown_args):
+        if args.lfc:
+            self.lfcPath = args.lfc
         
-        # 2. Copy prj.conf, Kconfig and app.overlay into the src-gen folder
-        for f in ("Kconfig", "prj.conf", "app.overlay"):
-            src = os.path.join(rootPath, f)
-            dst = os.path.join(srcGenPath, f)
-            if not os.path.exists(src):
-                print(f"Did not find {f} at {src}. Project layout is incorrect")
-                exit(1)
-            shutil.copyfile(src, dst)
+        foundFile = False
         
-        # Invoke west in the `src-gen` directory. Pass in 
-        if args.build:
-          westCmd = f"west build {srcGenPath} {args.build}"
-          print(f"Executing west command: `{westCmd}`")
-          res = subprocess.Popen(westCmd, shell=True)
-          ret = res.wait()
-          if ret != 0:
-              exit(1)
+        # 1. Invoke lfc on all source files in folder containing a main reactor
+        for filename in os.listdir(self.lfSrcPath):
+            # Construct the full file path
+            file_path = os.path.join(self.lfSrcPath, filename)
+
+            # Check if it's a file (not a directory)
+            if os.path.isfile(file_path):
+                # Example: open the file and read its content
+                with open(file_path, 'r') as file:
+                    content = file.read()
+                    if content.find("main reactor"):
+                        self.run_lfc(file_path)
+                        foundFile = True
+        if foundFile:
+            if args.build:
+                self.run_west_build()
+        else:
+            print(f"Did not find any LF files with main reactor in {self.lfSrcPath}")
+            exit(1) 

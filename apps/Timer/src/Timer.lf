@@ -1,0 +1,12 @@
+target uC {
+  platform: Zephyr
+}
+
+main reactor {
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    printf("Hello @ %lld %lld\n", env->get_elapsed_logical_time(env), env->get_elapsed_physical_time(env));
+  =}
+}
+

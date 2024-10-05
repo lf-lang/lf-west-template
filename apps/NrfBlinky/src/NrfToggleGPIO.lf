@@ -3,14 +3,12 @@
 * how we enable the high-precision HFCLK crystal oscillator for better
 * timing precision.
 */
-target C {
-    platform: {
-        name: "Zephyr",
-        board: nrf52dk_nrf52832,
-    },
-    single-threaded: true,
+target uC {
+    platform: Zephyr
 }
 
+
+main reactor {
 preamble {=
     #include <zephyr/kernel.h>
     #include <zephyr/drivers/gpio.h>
@@ -27,8 +25,6 @@ preamble {=
     #include <zephyr/drivers/clock_control/nrf_clock_control.h>
     static const struct device *const clock0 = DEVICE_DT_GET_ONE(nordic_nrf_clock);
 =}
-
-main reactor {
     timer t (0, 10 msec)
     
     reaction(startup) {=

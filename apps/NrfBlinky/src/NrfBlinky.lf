@@ -2,14 +2,12 @@
 * This is a Blinky example which blinks the on-board LED0 of the nrf52DK. It
 * works with other boards which has a `led0` device tree alias defined.
 */
-target C {
-    platform: {
-        name: "Zephyr",
-        board: nrf52dk_nrf52832,
-    },
-    single-threaded: true
+target uC {
+    platform: Zephyr
 }
 
+
+main reactor {
 preamble {=
     #include <zephyr/kernel.h>
     #include <zephyr/drivers/gpio.h>
@@ -17,8 +15,6 @@ preamble {=
     #define LED0_NODE DT_ALIAS(led0)
     static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 =}
-
-main reactor {
     timer t (0, 300 msec)
     
     reaction(startup) {=

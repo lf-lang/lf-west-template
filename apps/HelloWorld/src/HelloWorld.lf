@@ -1,14 +1,28 @@
-/*
-* Simple Hello-world. Will work with any Zephyr-supported platform
-*/
-target C {
+target uC {
     platform: "Zephyr",
-    single-threaded: true
 };
 
-main reactor {
+reactor R1 {
     reaction(startup) {=
         printf("Hello World\n");
     =}
+}
+
+reactor R2 {
+    reaction(startup) {=
+        printf("Hello World\n");
+    =}
+
+    timer t(0, 100 msec)
+
+    reaction(t) {=
+
+    =}
+}
+
+main reactor {
+    r1 = new R1()
+    r2 = new R1()
+    r3 = new R2()
 }
 
