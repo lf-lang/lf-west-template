@@ -15,7 +15,11 @@ class Lfc(WestCommand):
         )
         # To use a specific lfc binary the following variable can be modified
         # or the path to the desired binary can be passed to `--lfc`
-        self.lfcPath = "/home/erling/dev/reactor-uc/lfc/bin/lfc-dev"
+        
+        if not os.environ.get('REACTOR_UC_PATH'):
+            print(f"Environment variable REACTOR_UC_PATH not defined. Source env.bash in reactor-uc repo")
+            exit(1)
+        self.lfcPath = f"{os.environ.get('REACTOR_UC_PATH')}/lfc/bin/lfc-dev"
         self.lfSrcPath = "src"
 
     def do_add_parser(self, parser_adder):
@@ -50,6 +54,8 @@ class Lfc(WestCommand):
         if args.lfc:
             self.lfcPath = args.lfc
         
+        os.path.exists(self.lfcPath)
+
         foundFile = False
         
         # 1. Invoke lfc on all source files in folder containing a main reactor
